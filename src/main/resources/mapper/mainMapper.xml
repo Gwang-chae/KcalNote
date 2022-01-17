@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanwha.myapp.dao.MainDAO">
+	<select id="totalRecord" resultType="int">
+		select count(foodid) cnt from foodinfo
+		<if test="searchWord != null">
+			where name like '%${searchWord}%'
+		</if>
+	</select>
+	<select id="infoList" resultType="com.hanwha.myapp.vo.InfoVO">
+		select foodid, name, servingwt, kcal, carbo, protein, fat, company from
+			(select foodid, name, servingwt, kcal, carbo, protein, fat, company from 
+				(select foodid, name, servingwt, kcal, carbo, protein, fat, company from foodinfo 
+				<choose>
+					<when test="searchWord != ''">
+						where name like '%${searchWord}%'
+					</when>
+					<otherwise>
+						where name is null
+					</otherwise>
+				</choose>
+				order by name asc)
+			where rownum <![CDATA[<=]]> #{selectRecord} order by name desc)
+		where rownum <![CDATA[<=]]> #{pickRecord}
+		order by name asc
+	</select>
+	<select id="infoAllList" resultType="com.hanwha.myapp.vo.InfoVO">
+		select foodid, name, servingwt, kcal, carbo, protein, fat, company from
+			(select foodid, name, servingwt, kcal, carbo, protein, fat, company from 
+				(select foodid, name, servingwt, kcal, carbo, protein, fat, company from foodinfo
+				order by name asc)
+			where rownum <![CDATA[<=]]> #{selectRecord} order by name desc)
+		where rownum <![CDATA[<=]]> #{pickRecord}
+		order by name asc
+	</select>
+	<insert id="foodInsert">
+		insert into usernote(noteid, userid, foodid, notedate)
+		values(usernotesq.nextval, #{param1}, #{param2}, #{param3})
+	</insert>
+	<select id="noteList" resultType="com.hanwha.myapp.vo.InfoVO">
+		select name, servingwt, kcal, carbo, protein, fat, company, a.amount, a.noteid
+		from usernote a
+		join foodinfo b on a.foodid = b.foodid and #{param1} = a.userid
+		<choose>
+			<when test="param2 == null">
+				and to_char(a.notedate, 'yyyy-mm-dd') = to_char(sysdate, 'yyyy-mm-dd')
+			</when>
+			<otherwise>
+				and to_char(a.notedate, 'yyyy-mm-dd') = #{param2}
+			</otherwise>
+		</choose>
+	</select>
+	<delete id="noteDelete">
+		delete from usernote where noteid = #{param1}
+	</delete>
+	<update id="noteUpdate">
+		update usernote set amount = #{param2}
+		where noteid = #{param1}
+	</update>
+	<select id="weekKcal" resultType="com.hanwha.myapp.vo.InfoVO">
+		select sum(kcal * amount) weekKcal, notedate from 
+			(select userid, notedate, foodid, amount from usernote
+			where userid='${param1}' and notedate in (to_char(to_date('${param2}', 'yyyy-mm-dd')),
+			to_char(to_date('${param2}', 'yyyy-mm-dd')-1), 
+			to_char(to_date('${param2}', 'yyyy-mm-dd')-2),
+			to_char(to_date('${param2}', 'yyyy-mm-dd')-3),
+			to_char(to_date('${param2}', 'yyyy-mm-dd')-4),
+			to_char(to_date('${param2}', 'yyyy-mm-dd')-5),
+			to_char(to_date('${param2}', 'yyyy-mm-dd')-6))) a
+		join foodinfo b on a.foodid = b.foodid
+		group by notedate
+		order by notedate
+	</select>
+	<insert id="infoInsert">
+		<choose>
+			<when test="company != ''">
+				insert into foodinfo(foodid, name, servingwt, kcal, carbo, protein, fat, company)
+				values(foodidsq.nextval, #{name}, #{servingwt}, #{kcal}, #{carbo}, #{protein}, #{fat}, #{company})
+			</when>
+			<otherwise>
+				insert into foodinfo(foodid, name, servingwt, kcal, carbo, protein, fat)
+				values(foodidsq.nextval, #{name}, #{servingwt}, #{kcal}, #{carbo}, #{protein}, #{fat})
+			</otherwise>
+		</choose>
+	</insert>
+	
+	<!-- 게시판 -->
+	<insert id="boardWriteOk">
+		insert into kcalboard(no, title, content, userid)
+		values(kcalboardsq.nextval, #{title}, #{content}, #{userid})
+	</insert>
+	<select id="boardList" resultType="com.hanwha.myapp.vo.BoardVO">
+		select no, title, userid, hit, to_char(sysdate, 'yyyy-mm-dd') writedate from
+			(select no, title, userid, hit, writedate from 
+				(select no, title, userid, hit, to_char(writedate, 'MM-dd HH:MI') writedate from kcalboard 
+				<if test="searchBoardWord != null">
+					where ${searchKey} like '%${searchBoardWord}%'
+				</if>
+				order by no desc)
+			where rownum <![CDATA[<=]]> #{selectRecord} order by no)
+		where rownum <![CDATA[<=]]> #{pickRecord}
+		order by no desc
+	</select>
+	<update id="boardHitCount">
+		update kcalboard set hit = hit + 1
+		where no = #{param1}
+	</update>
+	<select id="boardView" resultType="com.hanwha.myapp.vo.BoardVO">
+		select no, title, userid, content, hit, writedate from kcalboard
+		where no = #{param1}
+	</select>
+	<update id="boardEditOk">
+		update kcalboard set title = #{title}, content = #{content}
+		where no = #{no} and userid = #{userid}
+	</update>
+	<delete id="boardDel">
+		 delete from kcalboard where no=#{param1} and userid=#{param2}
+	</delete>
+	
+	<!-- 게시판 페이징 -->
+	<select id="totalReplyRecord" resultType="int">
+		select count(no) cnt from kcalboard
+		<if test="searchBoardWord != null">
+			where ${searchKey} like '%${searchBoardWord}%'
+		</if>
+	</select>
+</mapper>

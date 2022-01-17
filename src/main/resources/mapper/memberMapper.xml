@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hanwha.myapp.dao.MemberDAO">
+	<insert id="memberInsert">
+		insert into kcalmember(usernum, userid, userpwd, username, age, height, weight, email, writedate, gender)
+		values(kcaluser.nextval, #{userid}, #{userpwd}, #{username}, #{age}, #{height}, #{weight}, #{email}, sysdate, #{gender})
+	</insert>
+	<select id="memberLogin" resultType="com.hanwha.myapp.vo.MemberVO">
+		select userid, username from kcalmember
+		where userid=#{userid} and userpwd=#{userpwd}
+	</select>
+	<select id="getMember" resultType="com.hanwha.myapp.vo.MemberVO">
+		select userid, userpwd, username, age, height, weight, email, gender from kcalmember 
+		where userid=#{param1}
+	</select>
+	<update id="memberUpdate">
+		update kcalmember set age=#{age}, height=#{height}, weight=#{weight}, email=#{email}
+		where userid=#{userid} and userpwd=#{userpwd}
+	</update>
+</mapper>
